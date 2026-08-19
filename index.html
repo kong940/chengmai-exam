@@ -136,8 +136,8 @@
 
   /* 题库 */
   .qb-list{display:flex;flex-direction:column;gap:12px}
-  .qb-more{margin-top:4px;text-align:center}
-  .qb-more .btn{width:100%;max-width:480px;margin:0 auto;background:#EEF2FF;color:#4F46E5;border:1px solid #DBeafe}
+  .qb-more{margin-top:4px;text-align:center;padding:14px 0;color:#9CA3AF;font-size:13px}
+  .qb-loadhint{display:inline-block}
   .qb-card{border:1px solid #ECEEF2;border-radius:14px;padding:14px;background:#FBFCFE}
   .qb-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
   .qb-no{font-size:12px;color:#9CA3AF}
@@ -970,9 +970,41 @@ function renderQB(){
   let html=shown.map(x=>renderQBCard(x, full.indexOf(x))).join('');
   if(full.length>qbPage){
     const left=full.length-qbPage;
-    html+='<div class="qb-more"><button class="btn block" data-action="qb-more">加载更多题目（还剩 '+left+' 题）</button></div>';
+    html+='<div class="qb-more" id="qb-sentinel"><span class="qb-loadhint">滚动到底自动加载（还剩 '+left+' 题）</span></div>';
   }
   wrap.innerHTML=html;
+  setupSentinel();
+}
+
+/* 无限滚动：哨兵进入视口附近即自动加载下一页（兼容旧 iOS 的滚动降级） */
+let _qbObsIO=null, _qbScrollFn=null;
+function loadMoreQB(){
+  const full=QB.filter(x=> qbFilter==='全部'||x.cat===qbFilter);
+  if(qbPage>=full.length) return;
+  qbPage+=QBPAGE_INIT; renderQB();
+}
+function setupSentinel(){
+  const s=document.getElementById('qb-sentinel');
+  if(!s) return;
+  if(_qbScrollFn){ window.removeEventListener('scroll',_qbScrollFn); _qbScrollFn=null; }
+  if(_qbObsIO) _qbObsIO.disconnect();
+  if('IntersectionObserver' in window){
+    if(!_qbObsIO){
+      _qbObsIO=new IntersectionObserver((es)=>{
+        es.forEach(en=>{ if(en.isIntersecting) loadMoreQB(); });
+      },{root:null, rootMargin:'300px', threshold:0.01});
+    }
+    _qbObsIO.disconnect();
+    _qbObsIO.observe(s);
+  } else {
+    const onScroll=()=>{
+      const r=s.getBoundingClientRect();
+      const vh=window.innerHeight||document.documentElement.clientHeight;
+      if(r.top < vh+300) loadMoreQB();
+    };
+    window.addEventListener('scroll',onScroll,{passive:true});
+    _qbScrollFn=onScroll; onScroll();
+  }
 }
 
 function renderAll(){
@@ -1049,9 +1081,6 @@ document.addEventListener('click',e=>{
   }
   if(a==='qb-done'){
     data.qb[id]={done:true}; save(); renderQB(); toast('已标记已做'); return;
-  }
-  if(a==='qb-more'){
-    qbPage+=QBPAGE_INIT; renderQB(); return;
   }
   if(a==='qb-quiz'){
     const pool=[...QB];
