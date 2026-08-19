@@ -136,6 +136,8 @@
 
   /* 题库 */
   .qb-list{display:flex;flex-direction:column;gap:12px}
+  .qb-more{margin-top:4px;text-align:center}
+  .qb-more .btn{width:100%;max-width:480px;margin:0 auto;background:#EEF2FF;color:#4F46E5;border:1px solid #DBeafe}
   .qb-card{border:1px solid #ECEEF2;border-radius:14px;padding:14px;background:#FBFCFE}
   .qb-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
   .qb-no{font-size:12px;color:#9CA3AF}
@@ -525,6 +527,7 @@ let QB = [{"id":"q001","cat":"政治","q":"马克思主义哲学的直接理论�
 let data = load();
 if(!data.qb) data.qb={};
 let qbFilter='全部';
+const QBPAGE_INIT=40; let qbPage=QBPAGE_INIT;  /* 分页渲染，避免手机端一次性渲染上千题卡死 */
 const qbRevealed=new Set();
 let qbQuiz=false, qbQuizIds=[];
 /* 选项随机打乱：每题每次显示都随机排序，正确答案出现在随机位置（不持久化，刷新即重新随机） */
@@ -961,9 +964,15 @@ function renderQB(){
   if(tip) tip.textContent='点击选项即可作答，系统自动判对错并出解析。';
   if(quizbar) quizbar.style.display='none';
 
-  const list=QB.filter(x=> qbFilter==='全部'||x.cat===qbFilter);
-  if(!list.length){ wrap.innerHTML='<div class="empty">该分类暂无题目</div>'; return; }
-  wrap.innerHTML=list.map((x,i)=>renderQBCard(x,i)).join('');
+  const full=QB.filter(x=> qbFilter==='全部'||x.cat===qbFilter);
+  if(!full.length){ wrap.innerHTML='<div class="empty">该分类暂无题目</div>'; return; }
+  const shown=full.slice(0,qbPage);
+  let html=shown.map(x=>renderQBCard(x, full.indexOf(x))).join('');
+  if(full.length>qbPage){
+    const left=full.length-qbPage;
+    html+='<div class="qb-more"><button class="btn block" data-action="qb-more">加载更多题目（还剩 '+left+' 题）</button></div>';
+  }
+  wrap.innerHTML=html;
 }
 
 function renderAll(){
@@ -1041,19 +1050,22 @@ document.addEventListener('click',e=>{
   if(a==='qb-done'){
     data.qb[id]={done:true}; save(); renderQB(); toast('已标记已做'); return;
   }
+  if(a==='qb-more'){
+    qbPage+=QBPAGE_INIT; renderQB(); return;
+  }
   if(a==='qb-quiz'){
     const pool=[...QB];
     for(let i=pool.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [pool[i],pool[j]]=[pool[j],pool[i]]; }
     qbQuizIds=pool.slice(0,Math.min(10,pool.length)).map(x=>x.id);
     qbShuffle={}; /* 每批自测重新随机排列选项 */
-    qbQuiz=true;
+    qbQuiz=true; qbPage=QBPAGE_INIT;
     renderQB();
     const n=qbQuizIds.length;
     if(!el.classList.contains('qb-restart')) toast('已抽取 '+n+' 题，开始自测！');
     return;
   }
   if(a==='qb-quit'){
-    qbQuiz=false; qbQuizIds=[]; renderQB(); return;
+    qbQuiz=false; qbQuizIds=[]; qbPage=QBPAGE_INIT; renderQB(); return;
   }
   if(a==='qb-tomistake'){
     const q=QB.find(x=>x.id===id);
@@ -1084,7 +1096,7 @@ document.addEventListener('click',e=>{
   }
   if(a==='export'){ exportJSON(); return; }
   if(a==='import'){ document.getElementById('importFile').click(); return; }
-  if(a==='update-data'){ fetchLiveData(false); return; }
+  if(a==='update-data'){ toast('正在检查更新…'); fetchLiveData(false); return; }
   if(a==='clear-demo'){
     data.tasks=data.tasks.filter(t=>!t.demo);
     data.practice=data.practice.filter(t=>!t.demo);
@@ -1140,7 +1152,7 @@ document.getElementById('importFile').addEventListener('change',e=>{
   e.target.value='';
 });
 document.getElementById('qb-cat').addEventListener('change',e=>{
-  qbFilter=e.target.value; renderQB();
+  qbFilter=e.target.value; qbPage=QBPAGE_INIT; renderQB();
 });
 
 function exportJSON(){
@@ -1172,7 +1184,7 @@ async function fetchLiveData(silent){
     catch(e){ /* 尝试下一个地址 */ }
   }
   if(!d){ if(!silent) toast('在线更新失败，当前使用本地内置数据'); return false; }
-  if(Array.isArray(d.qb)&&d.qb.length) QB=d.qb;
+  if(Array.isArray(d.qb)&&d.qb.length){ QB=d.qb; qbPage=QBPAGE_INIT; }
   if(Array.isArray(d.news)&&d.news.length) NEWS=d.news;
   if(Array.isArray(d.dailyTips)&&d.dailyTips.length) DAILY_TIPS=d.dailyTips;
   const badge=document.getElementById('live-badge');
