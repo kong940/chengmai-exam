@@ -826,8 +826,8 @@ function norm(s){ return String(s==null?'':s).trim().replace(/\s+/g,'').replace(
 function isCorrect(q, st, order){
   const t=q.type||'single';
   if(t==='multi'){
-    const picked = Array.isArray(st.picked)? st.picked : [];
-    const got = new Set(picked.map(p=>order[p]));
+    const picked = Array.isArray(st.picked)? st.picked.map(Number) : [];
+    const got = new Set(picked);
     const want = new Set((q.ans||[]).map(Number));
     if(got.size!==want.size) return false;
     for(const v of want) if(!got.has(v)) return false;
@@ -837,7 +837,8 @@ function isCorrect(q, st, order){
     if(typeof st.picked!=='string') return false;
     return norm(st.picked)===norm(q.ansText||'');
   }
-  return st.picked===order.indexOf(q.ans);
+  // single/bool：picked 与 q.ans 均为底层选项索引，跨会话稳定
+  return st.picked===q.ans;
 }
 function isAnswered(st){
   if(!st) return false;
@@ -871,17 +872,18 @@ function renderQBCard(x,i){
       </div>${fb}`;
   }
   else if(t==='multi'){
-    const picked = Array.isArray(st.picked)? st.picked : [];
+    const picked = Array.isArray(st.picked)? st.picked.map(Number) : [];   // 底层选项索引集合
     const ansSet = new Set((x.ans||[]).map(Number));
     const optsHtml=order.map((actual,j)=>{
-      let cls='opt multi'+(picked.includes(j)?' sel':'');
+      const isPicked = picked.includes(actual);
+      let cls='opt multi'+(isPicked?' sel':'');
       if(show){
         if(ansSet.has(actual)) cls+=' correct';
-        else if(picked.includes(j) && !ansSet.has(actual)) cls+=' wrong';
+        else if(isPicked && !ansSet.has(actual)) cls+=' wrong';
       }
       let mark='';
       if(show && ansSet.has(actual)) mark='<span class="om ok">✓</span>';
-      else if(show && picked.includes(j) && !ansSet.has(actual)) mark='<span class="om bad">✗</span>';
+      else if(show && isPicked && !ansSet.has(actual)) mark='<span class="om bad">✗</span>';
       return `<div class="${cls}" data-action="qb-pick-multi" data-id="${x.id}" data-idx="${j}"><span class="ol">${String.fromCharCode(65+j)}</span><span class="ot">${esc(x.opts[actual])}</span>${mark}</div>`;
     }).join('');
     let expHtml='';
@@ -892,16 +894,17 @@ function renderQBCard(x,i){
     body=`<div class="qb-opts">${optsHtml}</div>${expHtml}`;
   }
   else {
+    const pickedPos = (st.picked!==undefined && st.picked!==null)? order.indexOf(st.picked) : -1;
     const optsHtml=order.map((actual,j)=>{
       const o=x.opts[actual];
       let cls='opt';
       if(show){
         if(j===corr) cls+=' correct';
-        if(answered && st.picked===j && j!==corr) cls+=' wrong';
+        if(answered && j===pickedPos && j!==corr) cls+=' wrong';
       }
       let mark='';
       if(show && j===corr) mark='<span class="om ok">✓</span>';
-      else if(show && answered && st.picked===j && j!==corr) mark='<span class="om bad">✗</span>';
+      else if(show && answered && j===pickedPos && j!==corr) mark='<span class="om bad">✗</span>';
       return `<div class="${cls}" data-action="qb-pick" data-id="${x.id}" data-idx="${j}"><span class="ol">${String.fromCharCode(65+j)}</span><span class="ot">${esc(o)}</span>${mark}</div>`;
     }).join('');
     const expHtml = show? `<div class="qb-exp"><b>答案：${letter}</b>${x.exp?(' · '+esc(x.exp)):''}</div>`:'';
@@ -1049,7 +1052,7 @@ document.addEventListener('click',e=>{
     const q=QB.find(x=>x.id===id); if(!q) return;
     if((q.type||'single')==='multi') return; /* 多选走 qb-pick-multi */
     const st=data.qb[id]||{};
-    st.done=true; st.picked=idx;
+    st.done=true; st.picked=qbOrder(q)[idx];   // 存底层选项索引，跨会话稳定
     data.qb[id]=st;
     save(); renderQB();
     return;
@@ -1058,8 +1061,9 @@ document.addEventListener('click',e=>{
     const idx=+el.dataset.idx;
     const q=QB.find(x=>x.id===id); if(!q) return;
     const st=data.qb[id]||{};
-    let arr = Array.isArray(st.picked)? st.picked.slice() : [];
-    if(arr.includes(idx)) arr=arr.filter(v=>v!==idx); else arr.push(idx);
+    const actual=qbOrder(q)[idx];   // 转底层选项索引
+    let arr = Array.isArray(st.picked)? st.picked.map(Number) : [];
+    if(arr.includes(actual)) arr=arr.filter(v=>v!==actual); else arr.push(actual);
     st.picked=arr;
     data.qb[id]=st;
     save(); renderQB();
