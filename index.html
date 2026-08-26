@@ -849,17 +849,19 @@ function isCorrect(q, st, order){
 }
 function isAnswered(st){
   if(!st) return false;
-  if(Array.isArray(st.picked)) return st.picked.length>0;
+  if(Array.isArray(st.picked)) return st.done===true && st.picked.length>0;
   if(typeof st.picked==='string') return st.picked.trim()!=='';
-  return st.picked!==undefined && st.picked!==null;
+  return st.picked!==null && st.picked!==undefined;
 }
 
 function renderQBCard(x,i){
   const t=x.type||'single';
   const st=data.qb[x.id]||{};
+  // 是否已"提交/判分"：单选=已选即判；多选=点"标记已做"后才判；填空=已输入；或手动显示答案
+  const hasSel = (t==='multi') ? (Array.isArray(st.picked)&&st.picked.length>0) : false;
   const answered = (t==='blank')
-      ? (typeof st.picked==='string' && st.picked.trim()!=='')
-      : (t==='multi' ? (Array.isArray(st.picked)&&st.picked.length>0) : (st.picked!==undefined && st.picked!==null));
+      ? (st.done===true || (typeof st.picked==='string' && st.picked.trim()!==''))
+      : (t==='multi' ? (st.done===true) : (st.picked!==undefined && st.picked!==null));
   const show = answered || qbRevealed.has(x.id);
   const order=qbOrder(x);
   const corr=order.indexOf(x.ans);
@@ -923,7 +925,8 @@ function renderQBCard(x,i){
     const right=isCorrect(x,st,order);
     doneBtn = `<button class="btn sm done-mark" disabled>${right?'已做 ✓':'已做 ✗'}</button><button class="btn sm ghost" data-action="qb-redo" data-id="${x.id}">重做</button>`;
   } else {
-    doneBtn = `<button class="btn sm" data-action="qb-done" data-id="${x.id}">标记已做</button>`;
+    const canSubmit = (t==='multi') ? hasSel : (t==='blank' ? true : (st.picked!==undefined && st.picked!==null));
+    doneBtn = `<button class="btn sm" data-action="qb-done" data-id="${x.id}"${canSubmit?'':' disabled'}>标记已做</button>`;
   }
   const revealBtn = answered? '' : `<button class="btn sm" data-action="qb-reveal" data-id="${x.id}">${qbRevealed.has(x.id)?'隐藏答案':'显示答案'}</button>`;
   return `<div class="qb-card">
@@ -1091,7 +1094,8 @@ document.addEventListener('click',e=>{
     save(); renderQB(); return;
   }
   if(a==='qb-done'){
-    data.qb[id]={done:true}; save(); renderQB(); toast('已标记已做'); return;
+    const st=data.qb[id]||{}; st.done=true; data.qb[id]=st;   // 保留已选选项，仅标记已提交
+    save(); renderQB(); toast('已标记已做'); return;
   }
   if(a==='qb-quiz'){
     const pool=[...QB];
