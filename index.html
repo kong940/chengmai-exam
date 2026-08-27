@@ -189,6 +189,56 @@
     body{padding-bottom:84px}
     .hero .big{font-size:40px}
   }
+
+  /* ===== 视觉增强（覆盖，置于末尾优先） ===== */
+  :root{
+    --grad: linear-gradient(135deg,#6366F1 0%,#7C3AED 100%);
+    --grad-soft: linear-gradient(135deg,#EEF2FF 0%,#F5F3FF 100%);
+    --shadow-card:0 6px 22px rgba(79,70,229,.07),0 2px 6px rgba(16,24,40,.04);
+    --shadow-btn:0 7px 18px rgba(79,70,229,.34);
+    --ink:#111827; --ink2:#374151;
+  }
+  .card{box-shadow:var(--shadow-card);border-color:rgba(99,102,241,.10);transition:box-shadow .2s,transform .2s}
+  .card:hover{box-shadow:0 12px 32px rgba(79,70,229,.10),0 3px 8px rgba(16,24,40,.05)}
+  .today,.stat{background:linear-gradient(180deg,#ffffff,#fcfcff);box-shadow:var(--shadow-card);border-color:rgba(99,102,241,.10)}
+  .banner{box-shadow:var(--shadow-card)}
+  .btn{background:var(--grad);background-size:180% 180%;box-shadow:var(--shadow-btn);letter-spacing:.3px;transition:filter .18s,box-shadow .18s,transform .12s}
+  .btn:hover{filter:brightness(1.06);box-shadow:0 9px 24px rgba(79,70,229,.42)}
+  .btn:active{transform:translateY(1px) scale(.992);box-shadow:0 3px 10px rgba(79,70,229,.3)}
+  .btn:focus-visible{outline:none;box-shadow:0 0 0 4px rgba(99,102,241,.28)}
+  .btn.ghost{background:var(--grad-soft);color:var(--primary);border:1px solid rgba(99,102,241,.25);box-shadow:none}
+  .btn.ghost:hover{background:linear-gradient(135deg,#E0E7FF,#EDE9FE);box-shadow:0 4px 14px rgba(99,102,241,.14)}
+  .btn.danger{background:#FEE2E2;color:var(--red);box-shadow:none}
+  .btn.sm{box-shadow:0 5px 14px rgba(79,70,229,.28);background-size:180% 180%}
+  .btn.sm.ghost,.btn.sm.done-mark{box-shadow:none}
+  .btn-min{background:var(--grad);background-size:180% 180%;box-shadow:var(--shadow-btn);transition:filter .18s,transform .12s}
+  .btn-min:hover{filter:brightness(1.06)}
+  .btn-min:active{transform:translateY(1px)}
+  .btn-min.ghost{background:var(--grad-soft);color:var(--primary);box-shadow:none}
+  .icon-btn{transition:background .15s,transform .12s,box-shadow .15s;box-shadow:0 1px 3px rgba(16,24,40,.05)}
+  .icon-btn:active{transform:scale(.92)}
+  .icon-btn.del:hover{background:#FEE2E2}
+  .qb-card{background:#fff;box-shadow:var(--shadow-card);border:1px solid rgba(99,102,241,.10);transition:box-shadow .2s,transform .15s}
+  .qb-card:hover{box-shadow:0 10px 28px rgba(79,70,229,.10)}
+  .qb-head{margin-bottom:10px}
+  .qb-type{background:var(--grad);color:#fff;box-shadow:0 2px 6px rgba(79,70,229,.25)}
+  .qb-no{font-weight:700}
+  .opt{border:1.5px solid #E5E7EB;background:#fff;transition:border-color .15s,background .15s,box-shadow .15s,transform .1s}
+  .opt:hover{border-color:#A5B4FC;background:#F5F7FF;box-shadow:0 2px 8px rgba(99,102,241,.08)}
+  .opt:active{transform:scale(.99)}
+  .opt.multi.sel{border-color:var(--primary);background:linear-gradient(135deg,#EEF2FF,#EDE9FE);box-shadow:0 2px 8px rgba(99,102,241,.12)}
+  .opt.correct{border-color:#10B981;background:#ECFDF5;box-shadow:0 2px 8px rgba(16,185,129,.12)}
+  .opt.wrong{border-color:#EF4444;background:#FEF2F2;box-shadow:0 2px 8px rgba(239,68,68,.12)}
+  .qb-quizbar{background:var(--grad-soft);color:#4338CA;border:1px solid rgba(99,102,241,.18)}
+  .qb-quizbar .qb-restart{box-shadow:0 4px 12px rgba(79,70,229,.3)}
+  .qb-exp{background:linear-gradient(135deg,#EEF2FF,#F5F3FF);border:1px solid rgba(99,102,241,.14);color:#3730A3}
+  .tag{box-shadow:0 1px 3px rgba(16,24,40,.12)}
+  .bar > i{background:var(--grad);box-shadow:0 1px 4px rgba(79,70,229,.3)}
+  .field label{letter-spacing:.2px}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 4px rgba(99,102,241,.16);transition:border-color .15s,box-shadow .15s}
+  select{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>");background-repeat:no-repeat;background-position:right 12px center;padding-right:34px}
+  .tab.active{background:var(--grad-soft);color:var(--primary);box-shadow:inset 0 0 0 1px rgba(99,102,241,.2)}
+  .hd-title{letter-spacing:.3px}
 </style>
 </head>
 <body>
@@ -292,7 +342,7 @@
 
     <div class="card">
       <h3><svg class="ico" viewBox="0 0 24 24"><path d="M4 4h16v16H4z M8 8h8 M8 12h8 M8 16h5"/></svg>题库 <span class="muted" style="font-weight:400;font-size:13px">已做 <b id="qb-progress">0 / 0</b></span></h3>
-      <div id="install-card" style="background:linear-gradient(135deg,#6366F1,#8B5CF6);color:#fff;border-radius:14px;padding:12px 14px;margin-bottom:12px;font-size:13px">
+      <div id="install-card" style="display:none;background:linear-gradient(135deg,#6366F1,#8B5CF6);color:#fff;border-radius:14px;padding:12px 14px;margin-bottom:12px;font-size:13px">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
           <div style="flex:1">
             <b style="font-size:14px">📲 装到手机主屏</b>
@@ -322,7 +372,6 @@
           <option>单选</option>
           <option>多选</option>
           <option>判断</option>
-          <option>填空</option>
         </select>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
@@ -1279,10 +1328,20 @@ fetchLiveData(true); /* 在线打开时自动拉取最新数据；本地双击�
       navigator.serviceWorker.register('./sw.js').catch(function(e){console.warn('SW 注册失败:',e);});
     });
   }
+  /* 是否已「安装为 App」：iOS 添加到主屏幕 / 安卓 PWA 全屏 / 本地 APK(127.0.0.1) / 本地双击(file:) —— 命中则不再展示安装引导 */
+  var isInstalled = ('standalone' in navigator && navigator.standalone)
+      || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
+      || location.hostname==='127.0.0.1' || location.protocol==='file:';
+  function hideInstallUI(){
+    var c=document.getElementById('install-card'); if(c)c.style.display='none';
+    var h=document.getElementById('ios-hint'); if(h&&h.parentNode)h.parentNode.removeChild(h);
+  }
+  if(isInstalled){ hideInstallUI(); }
+
   try{
     var ua=navigator.userAgent;
     var isIOS=/iP(hone|od|ad)/.test(ua) && /Safari/.test(ua) && !/CriOS|FxiOS/.test(ua);
-    if(isIOS && !localStorage.getItem('qb_ios_hint')){
+    if(isIOS && !isInstalled && !localStorage.getItem('qb_ios_hint')){
       var b=document.createElement('div');b.id='ios-hint';
       b.setAttribute('style','position:fixed;left:12px;right:12px;bottom:84px;z-index:999;background:#0F172A;color:#fff;border-radius:14px;padding:12px 14px;font-size:13px;line-height:1.5;box-shadow:0 6px 24px rgba(0,0,0,.25);display:flex;align-items:flex-start;gap:10px');
       var t=document.createElement('div');t.style.flex='1';t.textContent='把题库装到手机：点 Safari 底部「分享」→「添加到主屏幕」，即可像 App 一样随时刷题（支持离线）。';
@@ -1292,28 +1351,28 @@ fetchLiveData(true); /* 在线打开时自动拉取最新数据；本地双击�
     }
   }catch(e){}
 
-  /* 可安装提示：捕获 beforeinstallprompt 显示「立即安装」按钮；否则 3 秒后展示手动步骤 */
-  var deferredPrompt=null;
-  window.addEventListener('beforeinstallprompt',function(e){
-    e.preventDefault(); deferredPrompt=e;
-    var btn=document.getElementById('pwa-install-btn');
-    if(btn){btn.style.display='inline-block';btn.onclick=function(){
-      deferredPrompt.prompt();
-      deferredPrompt.userChoice.then(function(){deferredPrompt=null;btn.style.display='none';});
-    };}
-  });
-  window.addEventListener('appinstalled',function(){
-    var c=document.getElementById('install-card'); if(c)c.style.display='none';
-  });
-  setTimeout(function(){
-    if(!deferredPrompt){
+  if(!isInstalled){
+    /* 仅在未安装时展示安装引导：捕获 beforeinstallprompt 显示「立即安装」按钮；否则 3 秒后展示手动步骤 */
+    var deferredPrompt=null;
+    window.addEventListener('beforeinstallprompt',function(e){
+      e.preventDefault(); deferredPrompt=e;
+      var card=document.getElementById('install-card'); if(card)card.style.display='block';
+      var btn=document.getElementById('pwa-install-btn');
+      if(btn){btn.style.display='inline-block';btn.onclick=function(){
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then(function(){deferredPrompt=null;btn.style.display='none';});
+      };}
+    });
+    window.addEventListener('appinstalled',function(){ hideInstallUI(); });
+    setTimeout(function(){
+      var card=document.getElementById('install-card'); if(card)card.style.display='block';
       var s=document.getElementById('install-steps'); if(s)s.style.display='block';
       var tip=document.getElementById('install-tip');
       if(tip && /vivo|iQOO|VivoBrowser|Quark|UCBrowser|Browser\//i.test(navigator.userAgent) && !/Chrome\//.test(navigator.userAgent)){
         tip.textContent='检测到你用的是手机自带浏览器，它不支持安装 App。请改用 Google Chrome 打开本链接。';
       }
-    }
-  },3000);
+    },3000);
+  }
 })();
 </script>
 </body>
