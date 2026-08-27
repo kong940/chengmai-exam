@@ -292,6 +292,20 @@
 
     <div class="card">
       <h3><svg class="ico" viewBox="0 0 24 24"><path d="M4 4h16v16H4z M8 8h8 M8 12h8 M8 16h5"/></svg>题库 <span class="muted" style="font-weight:400;font-size:13px">已做 <b id="qb-progress">0 / 0</b></span></h3>
+      <div id="install-card" style="background:linear-gradient(135deg,#6366F1,#8B5CF6);color:#fff;border-radius:14px;padding:12px 14px;margin-bottom:12px;font-size:13px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+          <div style="flex:1">
+            <b style="font-size:14px">📲 装到手机主屏</b>
+            <div id="install-tip" style="opacity:.95;margin-top:2px">把题库变成独立 App：离线能刷、进度自动存、像个真 App。</div>
+          </div>
+          <button id="pwa-install-btn" style="display:none;flex:none;border:0;background:#fff;color:#4F46E5;font-weight:700;border-radius:10px;padding:8px 14px;font-size:13px">立即安装</button>
+        </div>
+        <div id="install-steps" style="display:none;margin-top:10px;font-size:12px;line-height:1.6;background:rgba(255,255,255,.12);border-radius:10px;padding:10px">
+          <b>安卓（推荐 Chrome）</b>：用 <b>Google Chrome</b> 打开本链接 → 点右上角 ⋮ →「安装应用」（或地址栏右侧的 + 图标）→ 确认。vivo/iQOO 自带浏览器不支持安装，请先装 Chrome。<br>
+          <b>iPhone（Safari）</b>：点底部「分享」→「添加到主屏幕」。<br>
+          <b>没装 Chrome 时</b>：用自带浏览器菜单「添加到主屏幕」也能加快捷方式（无离线/全屏，体验打折）。
+        </div>
+      </div>
       <div class="field" style="margin-bottom:10px"><label>按分类筛选</label>
         <select id="qb-cat" data-action="qb-cat">
           <option>全部</option>
@@ -1277,6 +1291,29 @@ fetchLiveData(true); /* 在线打开时自动拉取最新数据；本地双击�
       b.appendChild(t);b.appendChild(c);document.body.appendChild(b);
     }
   }catch(e){}
+
+  /* 可安装提示：捕获 beforeinstallprompt 显示「立即安装」按钮；否则 3 秒后展示手动步骤 */
+  var deferredPrompt=null;
+  window.addEventListener('beforeinstallprompt',function(e){
+    e.preventDefault(); deferredPrompt=e;
+    var btn=document.getElementById('pwa-install-btn');
+    if(btn){btn.style.display='inline-block';btn.onclick=function(){
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(function(){deferredPrompt=null;btn.style.display='none';});
+    };}
+  });
+  window.addEventListener('appinstalled',function(){
+    var c=document.getElementById('install-card'); if(c)c.style.display='none';
+  });
+  setTimeout(function(){
+    if(!deferredPrompt){
+      var s=document.getElementById('install-steps'); if(s)s.style.display='block';
+      var tip=document.getElementById('install-tip');
+      if(tip && /vivo|iQOO|VivoBrowser|Quark|UCBrowser|Browser\//i.test(navigator.userAgent) && !/Chrome\//.test(navigator.userAgent)){
+        tip.textContent='检测到你用的是手机自带浏览器，它不支持安装 App。请改用 Google Chrome 打开本链接。';
+      }
+    }
+  },3000);
 })();
 </script>
 </body>
