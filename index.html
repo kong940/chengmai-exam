@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>澄迈执法考试 · 备考工作台</title>
+<meta name="theme-color" content="#6366F1">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="备考题库">
 <style>
   :root{
     --bg:#F4F6FB; --card:#FFFFFF; --primary:#4F46E5; --primary-soft:#EEF2FF;
@@ -1248,6 +1255,29 @@ document.getElementById('form-mistake').date.value=TODAY();
 document.getElementById('form-daily').date.value=TODAY();
 renderAll();
 fetchLiveData(true); /* 在线打开时自动拉取最新数据；本地双击文件会因 file:// 限制静默失败，仍用内置数据 */
+</script>
+
+<!-- PWA：注册 Service Worker + iOS 添加到主屏幕引导 -->
+<script>
+(function(){
+  if('serviceWorker' in navigator){
+    window.addEventListener('load',function(){
+      navigator.serviceWorker.register('./sw.js').catch(function(e){console.warn('SW 注册失败:',e);});
+    });
+  }
+  try{
+    var ua=navigator.userAgent;
+    var isIOS=/iP(hone|od|ad)/.test(ua) && /Safari/.test(ua) && !/CriOS|FxiOS/.test(ua);
+    if(isIOS && !localStorage.getItem('qb_ios_hint')){
+      var b=document.createElement('div');b.id='ios-hint';
+      b.setAttribute('style','position:fixed;left:12px;right:12px;bottom:84px;z-index:999;background:#0F172A;color:#fff;border-radius:14px;padding:12px 14px;font-size:13px;line-height:1.5;box-shadow:0 6px 24px rgba(0,0,0,.25);display:flex;align-items:flex-start;gap:10px');
+      var t=document.createElement('div');t.style.flex='1';t.textContent='把题库装到手机：点 Safari 底部「分享」→「添加到主屏幕」，即可像 App 一样随时刷题（支持离线）。';
+      var c=document.createElement('button');c.textContent='知道了';c.style.cssText='flex:none;border:0;background:rgba(255,255,255,.18);color:#fff;border-radius:8px;padding:4px 10px;font-size:13px';
+      c.onclick=function(){if(b.parentNode)b.parentNode.removeChild(b);localStorage.setItem('qb_ios_hint','1');};
+      b.appendChild(t);b.appendChild(c);document.body.appendChild(b);
+    }
+  }catch(e){}
+})();
 </script>
 </body>
 </html>
