@@ -1282,7 +1282,7 @@ function exportJSON(){
 }
 
 /* 联网更新：用 <script> 方式加载 data.js（JSONP 思路），绕过 file:// 与跨域 CORS 限制，桌面双击也能在线更新 */
-const REMOTE_DATA='https://e94ac0829b314410bd64ee142878d7f8.bj5.agentos-app.net/data.js';
+const REMOTE_DATA='https://kong940.github.io/chengmai-exam/data.js';
 function loadScriptData(url){
   return new Promise((resolve,reject)=>{
     const s=document.createElement('script');
@@ -1294,7 +1294,7 @@ function loadScriptData(url){
   });
 }
 async function fetchLiveData(silent){
-  const urls=['data.js?_='+Date.now(), REMOTE_DATA+'?_='+Date.now()];
+  const urls=[REMOTE_DATA+'?_='+Date.now(), 'data.js?_='+Date.now()];
   let d=null;
   for(const u of urls){
     try{ const r=await loadScriptData(u); if(r && Array.isArray(r.qb) && r.qb.length){ d=r; break; } }
