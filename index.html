@@ -1283,6 +1283,7 @@ function exportJSON(){
 
 /* 联网更新：用 <script> 方式加载 data.js（JSONP 思路），绕过 file:// 与跨域 CORS 限制，桌面双击也能在线更新 */
 const REMOTE_DATA='https://kong940.github.io/chengmai-exam/data.js';
+const GITEE_DATA='https://gitee.com/kong940/chengmai-exam/raw/main/data.js';
 function loadScriptData(url){
   return new Promise((resolve,reject)=>{
     const s=document.createElement('script');
@@ -1294,7 +1295,7 @@ function loadScriptData(url){
   });
 }
 async function fetchLiveData(silent){
-  const urls=[REMOTE_DATA+'?_='+Date.now(), 'data.js?_='+Date.now()];
+  const urls=[REMOTE_DATA+'?_='+Date.now(), GITEE_DATA+'?_='+Date.now(), 'https://raw.githubusercontent.com/kong940/chengmai-exam/main/data.js?_='+Date.now(), 'data.js?_='+Date.now()];
   let d=null;
   for(const u of urls){
     try{ const r=await loadScriptData(u); if(r && Array.isArray(r.qb) && r.qb.length){ d=r; break; } }
