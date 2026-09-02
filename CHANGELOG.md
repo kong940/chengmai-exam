@@ -73,7 +73,13 @@ git clone https://github.com/kong940/chengmai-exam.git
 - **原因**：用户反馈每次重开都要一直往下滑找进度；选题型又要一直往上滑，交互繁琐。
 - **复刻要点**：函数为 `locateQbLast()` / `markQbPos()` / `toTop` 滚动监听；卡片需带 `data-qid`；分页变量 `qbPage` 需支持按需扩展。
 - **关联文件**：`chengmai-exam/index.html`（由 `web-workbench/index.html` 同步而来，9 处改动，JS 语法检查通过）。
-- **发布状态**：已随本提交推送到 GitHub（网页版/PWA 生效）；并据仓库 `index.html` 重打包 APK（手机端生效，复用原密钥覆盖安装）。详见同日 `ops` 条目。
+- **发布状态**：已随提交 `e5206da`（2026-09-03）推送到 GitHub（网页版/PWA 生效）；并据仓库 `index.html` 重打包 APK（手机端生效，复用原密钥覆盖安装）。详见同日 `ops` 条目。
+
+### [2026-09-03] ops：重打包 APK（含返回顶部功能，复用原密钥覆盖安装）
+- **改动**：运行 `apk_build/build_apk.py` 重新生成 `备考题库-联网更新版.apk`（5,917,371 字节）。脚本改为**从仓库 `chengmai-exam/index.html` 取页面**（而非母版 APK），故「返回顶部+自动定位」一并打进包；数据仍取自仓库 `data.js`/`data.json`；签名复用 `chengmai_key.pem`，证书自签自检 PASS。
+- **原因**：让手机端 App 也具备最新刷题交互；并确立「改 `index.html` 后重出包即含新功能」的稳定链路。
+- **复刻要点**：需 `apk_inspect/app.apk`（母版）+ `apk_build/chengmai_key.pem|crt` + venv 依赖 `cryptography`+`pycryptodome`；详见 `apk_build/更新说明.md` 与上方「复刻与环境重建 → 2」。
+- **产物**：`apk_build/备考题库-联网更新版.apk`（已同步至桌面 `刷题/` 目录，可直接覆盖安装）。
 
 ### [2026-09-03] fix：在线更新增加 Gitee 镜像，远程优先、本地兜底
 - **改动**：`index.html` 的 `loadScriptData` 取数顺序改为
