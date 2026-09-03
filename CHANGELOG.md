@@ -65,6 +65,18 @@ git clone https://github.com/kong940/chengmai-exam.git
 
 ## 二、更新记录
 
+### [2026-09-04] ops：APK 增加 v2 签名（修复国产 ROM "没有开发者证书" 安装失败）
+- **改动**：`apk_build/build_apk.py` 在原有 v1(JAR) 自签基础上，新增 **APK Signature Scheme v2（全文件签名）**，生成 v1+v2 双重签名 APK。关键实现点：
+  - v2 内容摘要采用 AOSP 规范的两级 Merkle 树：将「ZIP 条目区(section1) + 中央目录(section3) + EOCD(section4)」按 1MB 切块，每块摘要 = `SHA256(0xa5 ‖ uint32LE(块长) ‖ 块)`；顶层摘要 = `SHA256(0x5a ‖ uint32LE(块数) ‖ 各块摘要拼接)`。
+  - 计算摘要前，需把 EOCD 的「中央目录偏移」字段改写为**签名块偏移**（= cd_start + cd_size），而非置零。
+  - 算法 ID 必须声明 `0x0103`（RSASSA-PKCS1-v1_5 + SHA2-256），与脚本实际用 `key.sign(pkcs1v15)` 一致；原误用 `0x0101`(PSS) 会致 Android 校验失败。
+  - 摘要记录为**双重长度前缀**：`digest = [uint32 总长][uint32 内部长][uint32 alg][摘要]`，解析时须分别消费两层长度。
+  - 校验脚本改为**手动 CRC 遍历 + 自写 v2 校验**（Python `zipfile` 无法解析 v2 签名包：其 `_RealGetContents` 会把 EOCD 与中央目录之间的签名块算进偏移，落点错乱报 "Bad magic number"；Android 能正确解析，故以人工校验为准）。
+- **原因**：旧 APK 仅 v1 签名，部分国产 Android ROM（Android 7+ 强制 v2）安装时报「没有开发者证书无法安装」。补全 v2 后可在现代/国产机型正常安装、覆盖安装。
+- **产物**：`apk_build/备考题库-联网更新版.apk`（1,973,917 字节；已同步至桌面 `刷题/`）。
+- **复刻要点**：同上方「复刻与环境重建 → 2」；依赖 `cryptography` + `pycryptodome`；运行校验输出须含 `条目 CRC OK / v1 签名 OK / APK Sig Block 结构 OK / v2 两级 Merkle 摘要 OK / v2 签名验证 PASS`。
+- **注意**：仓库 `index.html` 已指向 GitHub+Gitee，本包 `assets/index.html` 无改动（热修 patch 为空操作）。`apk_inspect/app.apk` 母版**无 .so 文件**，无需 zipalign 对齐。
+
 ### [2026-09-03] feat：刷题页「返回顶部」按钮 + 自动定位上次做题位置
 - **改动**：在 `index.html`（刷题/打卡页）新增
   - 右下角固定「↑ 顶部」悬浮按钮（滚动超一屏显示），点击平滑回顶。
