@@ -65,17 +65,17 @@ git clone https://github.com/kong940/chengmai-exam.git
 
 ## 二、更新记录
 
-### [2026-09-04] ops：APK 增加 v2 签名（修复国产 ROM "没有开发者证书" 安装失败）
-- **改动**：`apk_build/build_apk.py` 在原有 v1(JAR) 自签基础上，新增 **APK Signature Scheme v2（全文件签名）**，生成 v1+v2 双重签名 APK。关键实现点：
-  - v2 内容摘要采用 AOSP 规范的两级 Merkle 树：将「ZIP 条目区(section1) + 中央目录(section3) + EOCD(section4)」按 1MB 切块，每块摘要 = `SHA256(0xa5 ‖ uint32LE(块长) ‖ 块)`；顶层摘要 = `SHA256(0x5a ‖ uint32LE(块数) ‖ 各块摘要拼接)`。
-  - 计算摘要前，需把 EOCD 的「中央目录偏移」字段改写为**签名块偏移**（= cd_start + cd_size），而非置零。
-  - 算法 ID 必须声明 `0x0103`（RSASSA-PKCS1-v1_5 + SHA2-256），与脚本实际用 `key.sign(pkcs1v15)` 一致；原误用 `0x0101`(PSS) 会致 Android 校验失败。
-  - 摘要记录为**双重长度前缀**：`digest = [uint32 总长][uint32 内部长][uint32 alg][摘要]`，解析时须分别消费两层长度。
-  - 校验脚本改为**手动 CRC 遍历 + 自写 v2 校验**（Python `zipfile` 无法解析 v2 签名包：其 `_RealGetContents` 会把 EOCD 与中央目录之间的签名块算进偏移，落点错乱报 "Bad magic number"；Android 能正确解析，故以人工校验为准）。
-- **原因**：旧 APK 仅 v1 签名，部分国产 Android ROM（Android 7+ 强制 v2）安装时报「没有开发者证书无法安装」。补全 v2 后可在现代/国产机型正常安装、覆盖安装。
-- **产物**：`apk_build/备考题库-联网更新版.apk`（1,973,917 字节；已同步至桌面 `刷题/`）。
-- **复刻要点**：同上方「复刻与环境重建 → 2」；依赖 `cryptography` + `pycryptodome`；运行校验输出须含 `条目 CRC OK / v1 签名 OK / APK Sig Block 结构 OK / v2 两级 Merkle 摘要 OK / v2 签名验证 PASS`。
-- **注意**：仓库 `index.html` 已指向 GitHub+Gitee，本包 `assets/index.html` 无改动（热修 patch 为空操作）。`apk_inspect/app.apk` 母版**无 .so 文件**，无需 zipalign 对齐。
+### [2026-09-04] ops：APK 增加 v2 签名 + 修正 v1 PKCS7（修复国产 ROM "没有开发者证书" 安装失败）
+- **改动**：`apk_build/build_apk.py` 在原有 v1(JAR) 自签基础上，新增 **APK Signature Scheme v2（全文件签名）**，生成 v1+v2 双重签名 APK。本次（第二轮）修正了两处曾导致"自检通过却装不上"的致命格式错误：
+  - **v2 摘要/签名记录格式**：严格按 AOSP 规范 `记录 = [uint32 记录长][uint32 算法ID][字节]`，其中 `记录长 = 4 + len(字节)`；整组记录外层只包**一个** `uint32` 长度前缀。⚠️ 旧写法多加了一层长度前缀并多塞了一个"摘要长度"字段（`[uint32 总长][uint32 内部长][uint32 alg][摘要]`），与 `verify()` 自洽所以自检通过，但 Android 解析器拒绝。
+  - **v1 PKCS7 `certificates` 字段**：必须为 `[0] IMPLICIT` 上下文标签 `0xa0` 包住证书 DER（`0xa0 ‖ len ‖ certDER`）；旧写法误用 `0x31 SET` 标签，jar 校验器抽不出证书 → 报"没有开发者证书"。
+  - v2 内容摘要仍采用 AOSP 规范两级 Merkle 树：将「ZIP 条目区(section1) + 中央目录(section3) + EOCD(section4)」按 1MB 切块，每块 `SHA256(0xa5 ‖ uint32LE(块长) ‖ 块)`，顶层 `SHA256(0x5a ‖ uint32LE(块数) ‖ 各块摘要拼接)`；计算前把 EOCD「中央目录偏移」改写为**签名块偏移**（= cd_start + cd_size）。
+  - 算法 ID 声明 `0x0103`（RSASSA-PKCS1-v1_5 + SHA2-256），与 `key.sign(pkcs1v15)` 一致。
+  - 校验改为**手动 CRC 遍历 + 自写 v2 校验**；并新增一份**完全独立**的 AOSP 风格解析器交叉验证（不复用构建代码），确认 v2 摘要/签名、v1 PKCS7 结构与证书公钥验签全部 PASS。
+- **原因**：首版 v2 包在 vivo/国产 ROM 仍报"没有开发者证书无法安装"——根因是签名块/v1 PKCS7 字节格式非标准（与自写 `verify()` 自洽，故误判通过）。本轮按 AOSP 规范逐字节对齐后，Android 方能通过校验。
+- **产物**：`apk_build/备考题库-联网更新版.apk`（约 1,973,914 字节；已同步至桌面 `刷题/`）。
+- **复刻要点**：同上方「复刻与环境重建 → 2」；依赖 `cryptography` + `pycryptodome`；运行须输出 `条目 CRC OK / v1 签名 OK / APK Sig Block 结构 OK / v2 两级 Merkle 摘要 OK / v2 签名验证 PASS`，且独立校验脚本 v1/v2 全 PASS。
+- **注意**：仓库 `index.html` 已指向 GitHub+Gitee，本包 `assets/index.html` 无改动。`apk_inspect/app.apk` 母版**无 .so 文件**，无需 zipalign 对齐。证书有效期 2026-08-30 → 2036-08-28，自签，无扩展（Android v2 不要求证书链/扩展）。
 
 ### [2026-09-03] feat：刷题页「返回顶部」按钮 + 自动定位上次做题位置
 - **改动**：在 `index.html`（刷题/打卡页）新增
