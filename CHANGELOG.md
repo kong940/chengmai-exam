@@ -70,13 +70,15 @@ git clone https://github.com/kong940/chengmai-exam.git
 
 ## 二、更新记录
 
-### [2026-11-22] fix：APK「安装包无效」根因修复 —— v2 签名块 size 字段少算 8 字节
-- **现象**：新签名 APK 安装时报「安装包无效」（旧母版可装）。
-- **根因**：`build_v2_block` 里 `size = 8 + len(pair) + 8 = len(pair)+16`，而 AOSP 规范 `size = 块总长 - 8 = len(pair) + 24`（含尾部 size 8 字节 + magic 16 字节，不含开头 size 字段），**少 8 字节**；verify 又用 `block_start = p - size` 自洽校验 → 自检全过但真机装不上。Android 7+ 见 v2 块存在却校验失败，直接拒绝、不回退 v1。旧母版能装只因其 v2 本就不合规被忽略、走了 v1 兜底。
-- **修复**：①`build_v2_block` 改为 `size = len(pair) + 24` 并加断言 `len(block)==size+8`；②`verify` 改用 AOSP 公式 `block_start = cd_off - size - 8`、pair 终点 `cd_off - 24`，并校验首 size==尾 size。重新出包 `备考题库-联网更新版.apk`（2,044,304 字节），已同步桌面 `(新签名).apk`。
-- **验证**：独立按 AOSP 规范解析——`size==块长-8` ✅、pair `0x7109871a` 解析到尾 ✅、v2 摘要重算+公钥验签 ✅、v1 `openssl cms -verify` PASS + 16 条目摘要全对 ✅。
-- **原因/教训**：自写 verify 与构建共用错误假设会自洽误判；须用独立实现按官方文档交叉校验（本次靠「AOSP 公式 + 已知可装旧母版对照」定位）。
-- **关联文件**：`apk_build/build_apk.py`、`apk_build/更新说明.md`。
+### [2026-11-22] fix：APK 装机失败根因修复 —— v1/v2 签名格式三处坑（「安装包无效」+「需要开发者证书」）
+- **现象与根因（逐个定位、逐个修复）**：
+  1. **「安装包无效」= v2 签名块 size 少 8 字节**：`build_v2_block` 里 `size = len(pair)+16`，AOSP 规范应为 `size = 块长-8 = len(pair)+24`（含尾 size 8 + magic 16，不含开头 size）；verify 用 `block_start=p-size` 自洽 → 自检过但 Android 7+ 按规范 `cd_off-size-8` 定位偏移 8 字节、v2 校验失败直接拒装。修复：`size=len(pair)+24`+断言，verify 改 AOSP 公式并校验首尾 size 一致。
+  2. **「需要开发者证书」① = .SF 主段属性名错**：`build_v1_signatures` 主段误用 `SHA-256-Digest:`（条目段名），Android JAR 校验器找不到 `SHA-256-Digest-Manifest` → 判签名无效。修复：新增 `manifest_digest_main_line()` 输出 `SHA-256-Digest-Manifest:`，并补 `X-Android-APK-Signed: 2`（声明 v2、防降级剥离）。
+  3. **「需要开发者证书」② = .RSA 是 detached PKCS7**：`openssl cms -sign` 默认 detached（无内嵌内容），Android v1 校验器抽不出被签 .SF → 报无开发者证书。修复：openssl 加 **`-nodetach`** 生成 attached（eContent 内嵌 .SF + 证书）；旧母版 .RSA(2791B) 即 attached 结构，作对照。
+- **产物**：`apk_build/备考题库-联网更新版.apk`（2,045,317 字节），已同步桌面 `(新签名).apk`；内容不变（updated 2026-11-03、2714 题 + 118 资讯）。
+- **验证（独立实现模拟 Android，全部 PASS ✅）**：v1 = Digest-Manifest 对 SHA256(MF) ✅ + 16 条 .SF 条目摘要 ✅ + 16 条 MF 条目摘要 ✅ + X-Android-APK-Signed:2 ✅ + PKCS7 attached 内嵌 .SF ✅ + openssl 验签 ✅；v2 = AOSP size 公式合规 ✅ + 摘要重算 + 公钥验签 ✅。
+- **原因/教训**：自写 verify 与构建共用错误假设会自洽误判（三处坑全因此漏检）。必须独立按官方规范实现、并拿「已知可装的旧母版 .SF/.RSA 结构」逐一对照。环境无 JDK/apksigner，以独立交叉校验替代。
+- **关联文件**：`apk_build/build_apk.py`、`apk_build/更新说明.md`（踩坑记录第 3/5/6/7/8/9 条）。
 
 ### [2026-11-22] ops：重建 APK 打包脚本 + 新签名密钥，产出可安装新包（原密钥随系统重装丢失）
 - **改动**：
