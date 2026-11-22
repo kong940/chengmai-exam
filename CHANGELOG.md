@@ -7,7 +7,8 @@
 > 2. 类型标签：`feat`(新功能) · `fix`(修复) · `data`(题库/资讯数据) · `infra`(环境/网络) · `ops`(打包/发布) · `doc`(文档)
 > 3. 每条至少含：**日期 · 类型 · 改动内容 · 原因/背景 · 复刻要点 · 关联文件/commit**。
 > 4. 日常题库同步（`data.js` 机械更新 + GitHub Pages 自动部署）合并为阶段条目，不逐条记；但**功能性 / 基础设施 / 打包类改动必须逐条记**。
-> 5. 待推送 / 未提交 / 有歧义的改动，在标题后标注 `[待推送]` / `[未决]`。
+> 5. 同一主题被新方案**取代**时，用新条目覆盖旧条目（旧方案压成一句历史），避免同类踩坑记录堆砌导致手册冗长。
+> 6. 待推送 / 未提交 / 有歧义的改动，在标题后标注 `[待推送]` / `[未决]`。
 
 ---
 
@@ -23,15 +24,14 @@ git clone https://github.com/kong940/chengmai-exam.git
 - 题库 `data.js` / `data.json` 即唯一真相源；GitHub Pages 自动部署，链接固定：
   `https://kong940.github.io/chengmai-exam/`
 
-### 2. 重新出 APK（可选，需特殊环境）
-> **现状（2026-11-22 更新）**：原 `apk_build/`、母版和签名私钥已随系统重装丢失，现已按本手册**全部重建**于 `恢复项目/apk_build/`。重建用的是**新密钥**，与原 APK 签名不同，因此新包**不能覆盖安装旧版**（须先卸载）。母版 APK 改用桌面残留的 `备考题库-联网更新版.apk`。
-> - `apk_build/chengmai_key.pem` / `chengmai_cert.pem` —— 重建的新自签密钥（**务必备份，再丢就得出新密钥+再次卸载**）
-> - `apk_build/build_apk.py` —— 重建的重打包+签名脚本（v1+v2）
-> - `apk_build/更新说明.md` —— 重建的打包说明
-- Python 依赖：`pip install cryptography pycryptodome`；另需系统 `openssl`（Git Bash 自带）。
-- 运行：`cd 恢复项目/apk_build && python build_apk.py all` → 产物 `备考题库-联网更新版.apk`（已复制一份到桌面）。
-- 输入：母版 APK 取桌面旧包（Android 壳），网页源码取 `恢复项目/web/`。
-- 详细步骤与踩坑见 `apk_build/更新说明.md`。
+### 2. 重新出 APK（可选）
+> 原 `apk_build/` 与私钥随系统重装丢失，已重建于 `恢复项目/apk_build/`，用**新密钥**（与原包签名不同，须先卸载旧版才能装）。
+- **唯一出包方式**：`cd 恢复项目/apk_build && bash sign_official.sh`
+  - 用 **Google 官方 apksig** 签 v1+v2+v3，并自动处理 `resources.arsc` STORED + 4 字节对齐；校验 `verified=true` 才替换成品并同步桌面。
+  - 环境：JDK 17（`C:\Program Files\Eclipse Adoptium\jdk-17.0.21.10002-hotspot`）+ `tools/apksig.jar` + 系统 `openssl` + Python。
+  - 关键文件：`chengmai_key.pem` / `chengmai_cert.pem`（**务必备份**）、`sign_official.sh`、`tools/`（签名/校验/对齐工具）。
+- 输入：母版 APK 取桌面 `备考题库-联网更新版.apk`（Android 壳），网页源码取 `恢复项目/web/`。
+- ⚠️ 旧手搓脚本 `build_apk.py` 已废弃（签名格式坑太多），勿再用。详细流程见 `apk_build/更新说明.md`。
 
 ### 3. 推送题库更新（让"在线更新"生效）
 - 安装 **Git for Windows**。
@@ -60,7 +60,9 @@ git clone https://github.com/kong940/chengmai-exam.git
 | `恢复项目/web/` | 工作区 | ✅ 仓库副本 | 网页源码（从 GitHub 克隆，Git 历史在 `chengmai-exam-git/`） |
 | `恢复项目/apk_build/chengmai_key.pem` | 工作区 | ❌ 本地 | **重建的新签名密钥，务必备份** |
 | `恢复项目/apk_build/chengmai_cert.pem` | 工作区 | ❌ 本地 | 配套新证书（指纹 5F:95:…:DA:42:CA） |
-| `恢复项目/apk_build/build_apk.py` | 工作区 | ❌ 本地 | 重建的重打包+v1/v2 签名脚本 |
+| `恢复项目/apk_build/sign_official.sh` | 工作区 | ❌ 本地 | **唯一出包脚本**（官方 apksig 签名+对齐+校验） |
+| `恢复项目/apk_build/tools/` | 工作区 | ❌ 本地 | apksig.jar + Sign/Verify.java + 对齐脚本（出包工具链） |
+| `恢复项目/apk_build/build_apk.py` | 工作区 | ❌ 本地 | 旧手搓签名脚本（**已废弃**，勿用） |
 | `恢复项目/apk_build/更新说明.md` | 工作区 | ❌ 本地 | 打包发布详细流程与踩坑 |
 | `恢复项目/apk_build/备考题库-联网更新版.apk` | 工作区 | ❌ 本地 | 新签名 APK（桌面另有一份） |
 | `~/.workbuddy/skills/chengmai-news-updater/` | 用户目录 | ❌ 本地 | 重建的新闻更新 skill（SKILL.md + update_news.py + sources.md） |
@@ -70,42 +72,16 @@ git clone https://github.com/kong940/chengmai-exam.git
 
 ## 二、更新记录
 
-### [2026-11-22] fix：APK「兼容性问题」根因 —— resources.arsc 压缩未对齐（Android 11+ 强制）
-- **现象**：官方签名解决证书问题后，vivo 装机仍报「应用与当前系统有兼容性问题」。
-- **定位**：Manifest 合规（minSdk 21 / targetSdk 34 / exported=true），排除 SDK 与组件声明问题。真因是 `resources.arsc` 为 **DEFLATED 压缩**、数据偏移未按 4 字节对齐 —— Android 11 (API 30) 起系统拒装 `resources.arsc` 被压缩的 APK，报笼统「兼容性问题」。旧母版能在老系统装是因老系统不校验此项。
-- **修复**：新增 `tools/build_aligned_base.py`，重建母包使 `resources.arsc` = ZIP_STORED + 数据偏移 4 字节对齐（`classes.dex` 同样对齐），再走官方 ApkSigner 签名。ApkSigner 插签名块时补 4 字节保持对齐，签后已复验仍对齐。
-- **产物**：`apk_build/备考题库-联网更新版.apk`（2,032,942 B，md5 `ce7cd3d0...`），同步桌面 `(新签名).apk`；官方校验 verified=true（v1/v2/v3 各 1、零错误）+ resources.arsc STORED&对齐 ✅ + 内容完整（2714 题+118 资讯）。
-- **流程固化**：`sign_official.sh` 升级为 6 步，加入对齐母包构建与对齐复验；`更新说明.md` 补第七坑。
-- **关联文件**：`apk_build/tools/build_aligned_base.py`、`apk_build/sign_official.sh`、`apk_build/更新说明.md`。
-
-### [2026-11-22] fix：APK 装机失败终极修复 —— 改用 Google 官方 apksig 签名（官方校验 verified=true）
-- **现象**：前三次手搓签名修复后仍报「缺乏开发者证书」，反复装机失败。
-- **决定性定位**：装 JDK 17（winget `EclipseAdoptium.Temurin.17.JDK`）+ 下载 Google 官方 `apksig 8.6.1`，写 Java 调用 `ApkVerifier.verify()` 拿到 Android 实际视角：新包 `verified=false`、**v1 signers=0、v2=2 个均 `Malformed`**；旧母版 `v1 signers=1、v2=0`（靠 v1 兜底才装上）。根因：手搓 v2 块 malformed，Android 见 v2 块存在就只认 v2、解析失败直接拒装，报「缺乏开发者证书」。
-- **解决**：彻底弃用手搓签名，用官方 `ApkSigner` API 对未签名母包签 v1+v2+v3（`tools/Sign.java`）；官方 `ApkVerifier` 校验结果 **verified=true，v1/v2/v3 signers 各 1、零错误**。
-- **产物**：`apk_build/备考题库-联网更新版.apk`（2,049,321 B），同步桌面 `(新签名).apk`（md5 `89feefd7...` 一致）；内容不变（updated 2026-11-03、2714 题 + 118 资讯）。
-- **流程固化**：新增 `apk_build/sign_official.sh`（提取母包→DER 转换→编译→官方签名→官方校验，verified 才替换）；`更新说明.md` 重写，签名踩坑改为历史记录。工具 `tools/apksig.jar` + JDK 17 已就位。
-- **教训**：底层二进制签名绝不能手搓并用自写校验器验证（自洽陷阱，连踩 3 坑）；必须用官方实现交叉校验 + 已知可装旧母版对照，最终直接用官方 ApkSigner 从根上消除格式问题。
-- **关联文件**：`apk_build/sign_official.sh`、`apk_build/tools/{Sign,Verify}.java`、`apk_build/更新说明.md`。
-
-### [2026-11-22] fix：APK 装机失败根因修复 —— v1/v2 签名格式三处坑（「安装包无效」+「需要开发者证书」）
-- **现象与根因（逐个定位、逐个修复）**：
-  1. **「安装包无效」= v2 签名块 size 少 8 字节**：`build_v2_block` 里 `size = len(pair)+16`，AOSP 规范应为 `size = 块长-8 = len(pair)+24`（含尾 size 8 + magic 16，不含开头 size）；verify 用 `block_start=p-size` 自洽 → 自检过但 Android 7+ 按规范 `cd_off-size-8` 定位偏移 8 字节、v2 校验失败直接拒装。修复：`size=len(pair)+24`+断言，verify 改 AOSP 公式并校验首尾 size 一致。
-  2. **「需要开发者证书」① = .SF 主段属性名错**：`build_v1_signatures` 主段误用 `SHA-256-Digest:`（条目段名），Android JAR 校验器找不到 `SHA-256-Digest-Manifest` → 判签名无效。修复：新增 `manifest_digest_main_line()` 输出 `SHA-256-Digest-Manifest:`，并补 `X-Android-APK-Signed: 2`（声明 v2、防降级剥离）。
-  3. **「需要开发者证书」② = .RSA 是 detached PKCS7**：`openssl cms -sign` 默认 detached（无内嵌内容），Android v1 校验器抽不出被签 .SF → 报无开发者证书。修复：openssl 加 **`-nodetach`** 生成 attached（eContent 内嵌 .SF + 证书）；旧母版 .RSA(2791B) 即 attached 结构，作对照。
-- **产物**：`apk_build/备考题库-联网更新版.apk`（2,045,317 字节），已同步桌面 `(新签名).apk`；内容不变（updated 2026-11-03、2714 题 + 118 资讯）。
-- **验证（独立实现模拟 Android，全部 PASS ✅）**：v1 = Digest-Manifest 对 SHA256(MF) ✅ + 16 条 .SF 条目摘要 ✅ + 16 条 MF 条目摘要 ✅ + X-Android-APK-Signed:2 ✅ + PKCS7 attached 内嵌 .SF ✅ + openssl 验签 ✅；v2 = AOSP size 公式合规 ✅ + 摘要重算 + 公钥验签 ✅。
-- **原因/教训**：自写 verify 与构建共用错误假设会自洽误判（三处坑全因此漏检）。必须独立按官方规范实现、并拿「已知可装的旧母版 .SF/.RSA 结构」逐一对照。环境无 JDK/apksigner，以独立交叉校验替代。
-- **关联文件**：`apk_build/build_apk.py`、`apk_build/更新说明.md`（踩坑记录第 3/5/6/7/8/9 条）。
-
-### [2026-11-22] ops：重建 APK 打包脚本 + 新签名密钥，产出可安装新包（原密钥随系统重装丢失）
-- **改动**：
-  - 新建 `apk_build/build_apk.py`（`genkey / build / verify / all` 四步），v1(JAR) + v2(AOSP) 双签名；从桌面旧 APK 取 Android 壳（Manifest/dex/resources/res），从 `恢复项目/web/` 取网页源码与最新题库。
-  - 用 `build_apk.py genkey` **新生成**自签 RSA-2048 密钥对（证书 SHA256 指纹 `5F:95:B2:54:B1:5D:F8:82:EC:67:5E:9A:5A:A4:C9:29:EE:E0:6B:E1:EB:61:D2:CB:33:D9:F0:8C:33:DA:42:CA`，有效期 2026-08-30 → 2036-08-28）。
-  - 关键踩坑修复：①v2 签名块必须在**中央目录之前**；②EOCD「中央目录偏移」字段在**偏移 16**（12 是 cd_size）；③签名块 size **不含**末尾 16 字节 magic，块起点 = `magic位置 - size`；④v1 PKCS7 改由 `openssl cms -sign -binary -outform DER -nosmimecap` 生成 detached 签名（自写 ASN.1 DER 易错）；⑤校验时参与 v2 摘要的 body 必须**排除签名块**。
-  - 校验全通过：v2 摘要重算一致 + 公钥验签 ✅、v1 `openssl cms -verify` PASS、MANIFEST.MF 全部条目摘要正确。产物 `apk_build/备考题库-联网更新版.apk`（2,044,305 字节），已复制到桌面 `备考题库-联网更新版(新签名).apk`；内含 updated `2026-11-03 13:45`、2714 题 + 118 条资讯。
-- **原因**：系统重装后原 `apk_build/` 与签名私钥丢失，无法用原密钥出包覆盖安装。
-- **注意（务必告知用户）**：**新密钥 ≠ 原密钥**，Android 不允许直接覆盖安装。旧版先「导出 JSON 备份」→ 卸载旧版 → 装新 APK → 「导入恢复」，否则答题记录丢失且安装报签名冲突。
-- **复刻要点**：依赖 `cryptography` + `pycryptodome` + 系统 `openssl`；`python build_apk.py all`；详见 `apk_build/更新说明.md`。如需权威确认，装 JDK 后 `apksigner verify -v <apk>`。
+### [2026-11-22] ops：重建 APK 出包链路 —— 官方 apksig 签名 + resources.arsc 对齐（终版，装机成功）
+- **背景**：系统重装丢失原 `apk_build/` 与私钥。重建初期用手搓 v1/v2 签名，接连报「安装包无效」→「需要开发者证书」→「缺乏开发者证书」→「兼容性问题」；根因是**自写 verify 与构建共用错误假设，自洽误判**，装 JDK 用 Google 官方 `ApkVerifier` 才看到 Android 实际视角（v1/v2 全无效、v2 块 Malformed）。
+- **最终方案（一句话）**：弃用手搓签名，改 `bash apk_build/sign_official.sh` —— 提取未签名母包 → `tools/build_aligned_base.py` 把 `resources.arsc` 改 STORED + 4 字节对齐（`classes.dex` 同）→ 官方 `ApkSigner` 签 v1+v2+v3 → 官方 `ApkVerifier` 校验 `verified=true` + 对齐复验，全过才替换成品。
+- **两个硬性坑（缺一不可）**：
+  1. **签名**：必须官方工具签，手搓 v2/v1 格式（size、.SF 主段属性名、PKCS7 attached 等）极易错且自检发现不了。
+  2. **对齐**：Android 11+ 拒装 `resources.arsc` 被压缩的 APK（报笼统「兼容性问题」），必须 STORED + 4 字节对齐。
+- **密钥**：新自签 RSA-2048，证书指纹 `5F:95:B2:54:…:DA:42:CA`（2026-08-30 → 2036-08-28）。新密钥 ≠ 原密钥，旧版须先卸载。
+- **产物**：`apk_build/备考题库-联网更新版.apk`（2,032,942 B，md5 `ce7cd3d0...`），桌面同步 `(新签名).apk`；官方校验 verified=true（v1/v2/v3 各 1、零错误）+ 对齐合规 + 内容完整（updated 2026-11-03、2714 题 + 118 资讯）。**已装机成功。**
+- **关联文件**：`apk_build/sign_official.sh`、`apk_build/tools/{Sign,Verify}.java`、`apk_build/tools/build_aligned_base.py`、`apk_build/tools/apksig.jar`、`apk_build/更新说明.md`。
+- **相关 commit（过程记录，可忽略）**：`0856cff`→`609f9c3`→`9118c79`→`c021cce`。
 
 ### [2026-11-22] feat：重建 `chengmai-news-updater` skill（原 skill 本体丢失，按 CHANGELOG 配方复刻）
 - **改动**：在 `~/.workbuddy/skills/chengmai-news-updater/` 重建三个文件——`SKILL.md`（WebSearch 抓权威源 → 生成 `new_news.json` → dry 预览 → 写回推送）、`scripts/update_news.py`（标题去重、`date` 降序、`data.js`/`data.json` 双写、可选 git commit/push）、`references/sources.md`（权威源清单与字段规范）。已用空条目 dry-run 实测通过（118 条无重复 → 显示 0 新增），skill 校验通过并打包 `恢复项目/chengmai-news-updater.zip` 备份。
@@ -179,7 +155,7 @@ git clone https://github.com/kong940/chengmai-exam.git
 - **原因**：用户反馈第一批 14 条偏“习近平/党建/外交”单一主线，公基需“各种各样关于官方的新闻”广泛积累；本次补齐国务院政策、经济数据、法律法规、科技成就、重大工程、民生政策等类别。
 - **复刻要点**：同上一 data 条——Python 解析 `window.__LIVE_DATA__ = {...}`（去末尾 `;` 再 `json.loads`），向 `news` 追加 dict，按 `date` 降序，两文件同步写回；去重按 `t` 标题判重。`tag` 维度已由原来 `时政/海南/澄迈/法治` 扩为 `时政/海南/澄迈/法治/经济/科技/工程/民生`，便于按类浏览。
 - **关联文件**：`chengmai-exam/data.js`、`chengmai-exam/data.json`。
-- **发布状态**：待推送（commit 后 push 至 `kong940/chengmai-exam` main，GitHub Pages 自动部署，网页版/PWA 刷新即生效）。
+- **发布状态**：已推送至 `kong940/chengmai-exam` main，GitHub Pages 自动部署。
 
 ### [2026-09-24] data：每日学习新增国家层面时政（2026年6—9月），覆盖十五五、习近平讲话与外交、党建、法治
 - **改动**：`data.js` / `data.json` 的 `news` 数组新增 14 条**国家层面**时政（tag=`时政` 13 条 + `法治` 1 条），原 16 条海南/澄迈本地资讯保留；总量 16 → 30 条，`updated` 改为 `2026-09-24 16:04`，整体按 `date` 降序排序。
@@ -189,28 +165,9 @@ git clone https://github.com/kong940/chengmai-exam.git
 - **关联文件**：`chengmai-exam/data.js`、`chengmai-exam/data.json`。
 - **发布状态**：已推送（commit `0cab930`，GitHub Pages 已部署，网页版/PWA 刷新即生效）。
 
-### [2026-09-04] ops：APK v2 签名块【位置】修复（终版，真能装）—— 签名块必须在中央目录之前
-- **改动**：`apk_build/build_apk.py` 第 4.4 节组装逻辑。此前虽已修正 v2 记录格式与 v1 PKCS7 证书标签，但**签名块被插到了中央目录【之后】**（`[条目][中央目录][签名块][EOCD]`），而 AOSP 强制要求 `[条目][签名块][中央目录][EOCD]`。
-  - Android 的 v2 校验器从「中央目录偏移」**向前**扫描定位签名块；顺序错则找不到 v2 → 退回 v1 → 报"缺乏开发者证书无法安装"。这正是前几轮"自检通过却装不上"的真因。
-  - 修正：`final = body + v2 + 中央目录 + EOCD`，签名块插入中央目录之前；最终 EOCD「中央目录偏移」改写为 `cd_start + len(v2)`，摘要计算时该字段置为 `cd_start`（签名块偏移）。
-  - 配套：`verify()` 改用「中央目录偏移(cd_off2)」向前定位块；另写一份**完全独立、不复用构建代码**的 AOSP 风格解析器交叉验证——确认**块位于 CD 之前**、摘要重算一致、v2 公钥验签 PASS、v1 PKCS7 `0xa0` 且签名为 PASS。
-- **根因复盘（关键教训）**：前几轮"修复"与自写 `verify()` **共用同一套（错误）布局假设**，两者自洽 → 误判通过。签名块物理位置这种"字节解析看不出、肉眼也易漏"的错误，必须靠独立解析器模拟 Android 找块方式、或 `apksigner verify`（需 JDK）做权威校验。
-- **原因**：vivo/国产 ROM 安装器严格按 AOSP v2 校验；位置错误导致 v2 不被识别。
-- **产物**：`apk_build/备考题库-联网更新版.apk`（1,973,914 字节；已同步至桌面 `刷题/`）。
-- **复刻要点**：同「复刻 → 2」；`python build_apk.py` 须输出 `v2 签名块位于中央目录之前 ✅ … v2 签名验证 PASS`，且独立校验脚本 v1/v2 全 PASS。
-- **权威验证建议**：若仍不放心，用 Android SDK `apksigner verify 备考题库-联网更新版.apk`（需 JDK）终确认；本环境无 JDK，已用独立 AOSP 风格解析器替代。
-
-### [2026-09-04] ops：APK 增加 v2 签名 + 修正 v1 PKCS7（修复国产 ROM "没有开发者证书" 安装失败）
-- **改动**：`apk_build/build_apk.py` 在原有 v1(JAR) 自签基础上，新增 **APK Signature Scheme v2（全文件签名）**，生成 v1+v2 双重签名 APK。本次（第二轮）修正了两处曾导致"自检通过却装不上"的致命格式错误：
-  - **v2 摘要/签名记录格式**：严格按 AOSP 规范 `记录 = [uint32 记录长][uint32 算法ID][字节]`，其中 `记录长 = 4 + len(字节)`；整组记录外层只包**一个** `uint32` 长度前缀。⚠️ 旧写法多加了一层长度前缀并多塞了一个"摘要长度"字段（`[uint32 总长][uint32 内部长][uint32 alg][摘要]`），与 `verify()` 自洽所以自检通过，但 Android 解析器拒绝。
-  - **v1 PKCS7 `certificates` 字段**：必须为 `[0] IMPLICIT` 上下文标签 `0xa0` 包住证书 DER（`0xa0 ‖ len ‖ certDER`）；旧写法误用 `0x31 SET` 标签，jar 校验器抽不出证书 → 报"没有开发者证书"。
-  - v2 内容摘要仍采用 AOSP 规范两级 Merkle 树：将「ZIP 条目区(section1) + 中央目录(section3) + EOCD(section4)」按 1MB 切块，每块 `SHA256(0xa5 ‖ uint32LE(块长) ‖ 块)`，顶层 `SHA256(0x5a ‖ uint32LE(块数) ‖ 各块摘要拼接)`；计算前把 EOCD「中央目录偏移」改写为**签名块偏移**（= cd_start + cd_size）。
-  - 算法 ID 声明 `0x0103`（RSASSA-PKCS1-v1_5 + SHA2-256），与 `key.sign(pkcs1v15)` 一致。
-  - 校验改为**手动 CRC 遍历 + 自写 v2 校验**；并新增一份**完全独立**的 AOSP 风格解析器交叉验证（不复用构建代码），确认 v2 摘要/签名、v1 PKCS7 结构与证书公钥验签全部 PASS。
-- **原因**：首版 v2 包在 vivo/国产 ROM 仍报"没有开发者证书无法安装"——根因是签名块/v1 PKCS7 字节格式非标准（与自写 `verify()` 自洽，故误判通过）。本轮按 AOSP 规范逐字节对齐后，Android 方能通过校验。
-- **产物**：`apk_build/备考题库-联网更新版.apk`（约 1,973,914 字节；已同步至桌面 `刷题/`）。
-- **复刻要点**：同上方「复刻与环境重建 → 2」；依赖 `cryptography` + `pycryptodome`；运行须输出 `条目 CRC OK / v1 签名 OK / APK Sig Block 结构 OK / v2 两级 Merkle 摘要 OK / v2 签名验证 PASS`，且独立校验脚本 v1/v2 全 PASS。
-- **注意**：仓库 `index.html` 已指向 GitHub+Gitee，本包 `assets/index.html` 无改动。`apk_inspect/app.apk` 母版**无 .so 文件**，无需 zipalign 对齐。证书有效期 2026-08-30 → 2036-08-28，自签，无扩展（Android v2 不要求证书链/扩展）。
+### [2026-09-04] ops：APK v2/v1 手工签名探索（历史，已被 2026-11-22 官方 apksig 方案取代）
+- 曾在 `build_apk.py` 手搓 v2 签名块与 v1 PKCS7，反复修「签名块位置须在中央目录之前」「摘要记录格式」「PKCS7 证书标签 0xa0」等；依赖 JDK 缺失只能自写解析器验证，屡次「自检通过却装不上」。
+- **结论**：这条路线已废弃。最终改用 Google 官方 apksig 签名（见 2026-11-22 ops 条目），底层二进制签名不再手搓。保留本条仅为溯源，复刻请直接看 `sign_official.sh`。
 
 ### [2026-09-03] feat：刷题页「返回顶部」按钮 + 自动定位上次做题位置
 - **改动**：在 `index.html`（刷题/打卡页）新增
@@ -222,11 +179,8 @@ git clone https://github.com/kong940/chengmai-exam.git
 - **关联文件**：`chengmai-exam/index.html`（由 `web-workbench/index.html` 同步而来，9 处改动，JS 语法检查通过）。
 - **发布状态**：已随提交 `e5206da`（2026-09-03）推送到 GitHub（网页版/PWA 生效）；并据仓库 `index.html` 重打包 APK（手机端生效，复用原密钥覆盖安装）。详见同日 `ops` 条目。
 
-### [2026-09-03] ops：重打包 APK（含返回顶部功能，复用原密钥覆盖安装）
-- **改动**：运行 `apk_build/build_apk.py` 重新生成 `备考题库-联网更新版.apk`（5,917,371 字节）。脚本改为**从仓库 `chengmai-exam/index.html` 取页面**（而非母版 APK），故「返回顶部+自动定位」一并打进包；数据仍取自仓库 `data.js`/`data.json`；签名复用 `chengmai_key.pem`，证书自签自检 PASS。
-- **原因**：让手机端 App 也具备最新刷题交互；并确立「改 `index.html` 后重出包即含新功能」的稳定链路。
-- **复刻要点**：需 `apk_inspect/app.apk`（母版）+ `apk_build/chengmai_key.pem|crt` + venv 依赖 `cryptography`+`pycryptodome`；详见 `apk_build/更新说明.md` 与上方「复刻与环境重建 → 2」。
-- **产物**：`apk_build/备考题库-联网更新版.apk`（已同步至桌面 `刷题/` 目录，可直接覆盖安装）。
+### [2026-09-03] ops：重打包 APK（含返回顶部功能）— 历史
+- 当时从仓库 `index.html` 取页面重打包，把「返回顶部+自动定位」打进手机端，确立「改 `index.html` 后重出包含新功能」的链路。旧脚本/旧密钥/旧产物均已在 2026-11-22 重建替换，复刻请走 `sign_official.sh`。
 
 ### [2026-09-03] fix：在线更新增加 Gitee 镜像，远程优先、本地兜底
 - **改动**：`index.html` 的 `loadScriptData` 取数顺序改为
@@ -247,11 +201,8 @@ git clone https://github.com/kong940/chengmai-exam.git
   - 桌面新增 `推送备考题库.bat`（最终版用 SSH over 443 推送，推完还原 remote）。
 - **原因**：网页版是 PWA 本体，可独立本地运行/分享，且不依赖手机。
 
-### [2026-08-29] ops：APK 重打包（联网更新版）并自签
-- **改动**：基于桌面「备考题库-本地离线版.apk」解包改造为「联网更新版」——WebView 壳 + 本地 `ServerSocket(127.0.0.1:8080)` 喂 `assets/`，内置失效的旧更新地址改为 GitHub（Pages→raw→本地兜底）。纯 Python 自签 v1(JAR) 生成 `备考题库-联网更新版.apk`。
-- **原因**：旧 APK 在线更新地址（agentos-app.net）已失效，需接 GitHub 题库长期更新。
-- **复刻要点**：脚本 `apk_build/build_apk.py`；依赖 `cryptography` + `pycryptodome`；密钥 `chengmai_key.pem` 必留（覆盖安装靠它）。
-- **产物**：`apk_build/备考题库-联网更新版.apk`（桌面也有一份，5.9MB，含 Gitee 镜像）。
+### [2026-08-29] ops：APK 改造为「联网更新版」— 历史
+- 基于本地离线版解包，WebView 壳 + 本地 `ServerSocket(127.0.0.1:8080)` 喂 `assets/`，失效的旧更新地址改为 GitHub（Pages→raw→本地兜底，后加 Gitee 镜像）。这套壳结构沿用至今；签名方式已在 2026-11-22 改为官方 apksig。
 
 ### [2026-08-29] infra：找回 GitHub 项目 + 环境搭建（Git / SSH over 443 / hosts）
 - **改动**：
@@ -270,9 +221,8 @@ git clone https://github.com/kong940/chengmai-exam.git
 ---
 
 ## 三、待办 / 开放问题
-- [x] 「返回顶部 + 自动定位」已写回仓库并推送（网页版生效）；已据仓库 `index.html` 重打包 APK（手机端生效，复用原密钥覆盖安装）。
-- [x] 2026-11-22 系统重装后项目恢复：云端仓库取回、`chengmai-news-updater` skill 重建、APK 打包脚本+新密钥重建并产出新包。
-- [ ] **待用户操作**：新 APK 用新密钥签名，无法覆盖旧版——需在旧版「导出 JSON 备份」→ 卸载旧版 → 装新包 → 「导入恢复」。
-- [ ] **务必备份** `恢复项目/apk_build/chengmai_key.pem`（新签名私钥），再丢需再次换密钥+卸载。
-- [x] 本次 CHANGELOG 更新已 commit `99c1979` 并推送到 GitHub main（2026-11-22）。
+- [x] 2026-11-22 系统重装后完整恢复项目：云端仓库取回、`chengmai-news-updater` skill 重建、APK 出包链路重建（官方 apksig + 对齐）。
+- [x] APK 已装机成功（官方签名 v1/v2/v3 + resources.arsc 对齐，官方校验 verified=true）。
+- [x] 本次 CHANGELOG 更新已推送 GitHub main。
+- [ ] **务必备份** `恢复项目/apk_build/chengmai_key.pem`（签名私钥），再丢需换新密钥并再次卸载旧版。
 - [ ] 考虑为 `chengmai-exam/` 加 GitHub Actions，实现「推题库自动重打包 APK」闭环（免去手动出包）。
