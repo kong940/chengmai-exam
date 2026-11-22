@@ -70,6 +70,14 @@ git clone https://github.com/kong940/chengmai-exam.git
 
 ## 二、更新记录
 
+### [2026-11-22] fix：APK「兼容性问题」根因 —— resources.arsc 压缩未对齐（Android 11+ 强制）
+- **现象**：官方签名解决证书问题后，vivo 装机仍报「应用与当前系统有兼容性问题」。
+- **定位**：Manifest 合规（minSdk 21 / targetSdk 34 / exported=true），排除 SDK 与组件声明问题。真因是 `resources.arsc` 为 **DEFLATED 压缩**、数据偏移未按 4 字节对齐 —— Android 11 (API 30) 起系统拒装 `resources.arsc` 被压缩的 APK，报笼统「兼容性问题」。旧母版能在老系统装是因老系统不校验此项。
+- **修复**：新增 `tools/build_aligned_base.py`，重建母包使 `resources.arsc` = ZIP_STORED + 数据偏移 4 字节对齐（`classes.dex` 同样对齐），再走官方 ApkSigner 签名。ApkSigner 插签名块时补 4 字节保持对齐，签后已复验仍对齐。
+- **产物**：`apk_build/备考题库-联网更新版.apk`（2,032,942 B，md5 `ce7cd3d0...`），同步桌面 `(新签名).apk`；官方校验 verified=true（v1/v2/v3 各 1、零错误）+ resources.arsc STORED&对齐 ✅ + 内容完整（2714 题+118 资讯）。
+- **流程固化**：`sign_official.sh` 升级为 6 步，加入对齐母包构建与对齐复验；`更新说明.md` 补第七坑。
+- **关联文件**：`apk_build/tools/build_aligned_base.py`、`apk_build/sign_official.sh`、`apk_build/更新说明.md`。
+
 ### [2026-11-22] fix：APK 装机失败终极修复 —— 改用 Google 官方 apksig 签名（官方校验 verified=true）
 - **现象**：前三次手搓签名修复后仍报「缺乏开发者证书」，反复装机失败。
 - **决定性定位**：装 JDK 17（winget `EclipseAdoptium.Temurin.17.JDK`）+ 下载 Google 官方 `apksig 8.6.1`，写 Java 调用 `ApkVerifier.verify()` 拿到 Android 实际视角：新包 `verified=false`、**v1 signers=0、v2=2 个均 `Malformed`**；旧母版 `v1 signers=1、v2=0`（靠 v1 兜底才装上）。根因：手搓 v2 块 malformed，Android 见 v2 块存在就只认 v2、解析失败直接拒装，报「缺乏开发者证书」。
