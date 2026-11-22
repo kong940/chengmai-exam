@@ -70,7 +70,7 @@ git clone https://github.com/kong940/chengmai-exam.git
 
 ## 二、更新记录
 
-### [2026-11-22] ops：重建 APK 打包脚本 + 新签名密钥，产出可安装新包（原密钥随系统重装丢失）[待推送]
+### [2026-11-22] ops：重建 APK 打包脚本 + 新签名密钥，产出可安装新包（原密钥随系统重装丢失）
 - **改动**：
   - 新建 `apk_build/build_apk.py`（`genkey / build / verify / all` 四步），v1(JAR) + v2(AOSP) 双签名；从桌面旧 APK 取 Android 壳（Manifest/dex/resources/res），从 `恢复项目/web/` 取网页源码与最新题库。
   - 用 `build_apk.py genkey` **新生成**自签 RSA-2048 密钥对（证书 SHA256 指纹 `5F:95:B2:54:B1:5D:F8:82:EC:67:5E:9A:5A:A4:C9:29:EE:E0:6B:E1:EB:61:D2:CB:33:D9:F0:8C:33:DA:42:CA`，有效期 2026-08-30 → 2036-08-28）。
@@ -80,12 +80,12 @@ git clone https://github.com/kong940/chengmai-exam.git
 - **注意（务必告知用户）**：**新密钥 ≠ 原密钥**，Android 不允许直接覆盖安装。旧版先「导出 JSON 备份」→ 卸载旧版 → 装新 APK → 「导入恢复」，否则答题记录丢失且安装报签名冲突。
 - **复刻要点**：依赖 `cryptography` + `pycryptodome` + 系统 `openssl`；`python build_apk.py all`；详见 `apk_build/更新说明.md`。如需权威确认，装 JDK 后 `apksigner verify -v <apk>`。
 
-### [2026-11-22] feat：重建 `chengmai-news-updater` skill（原 skill 本体丢失，按 CHANGELOG 配方复刻）[待推送]
+### [2026-11-22] feat：重建 `chengmai-news-updater` skill（原 skill 本体丢失，按 CHANGELOG 配方复刻）
 - **改动**：在 `~/.workbuddy/skills/chengmai-news-updater/` 重建三个文件——`SKILL.md`（WebSearch 抓权威源 → 生成 `new_news.json` → dry 预览 → 写回推送）、`scripts/update_news.py`（标题去重、`date` 降序、`data.js`/`data.json` 双写、可选 git commit/push）、`references/sources.md`（权威源清单与字段规范）。已用空条目 dry-run 实测通过（118 条无重复 → 显示 0 新增），skill 校验通过并打包 `恢复项目/chengmai-news-updater.zip` 备份。
 - **原因**：重装后已安装 skill 为空、市场搜不到、资料库/历史对话无本体；但本 CHANGELOG 保留了配方（skill 名 + `update_news.py` + 工作流），据此原样复刻。
 - **复刻要点**：以后说「更新新闻」即可按老流程跑；脚本参数 `--entries / --dry / --repo / --commit / --branch`；详见 skill 内 `SKILL.md`。
 
-### [2026-11-22] infra：系统重装后完整恢复项目 —— APK 解包 + GitHub 仓库取回 + 开发手册找回[待推送]
+### [2026-11-22] infra：系统重装后完整恢复项目 —— APK 解包 + GitHub 仓库取回 + 开发手册找回
 - **改动**：
   - 找到桌面残留 `备考题库-联网更新版.apk`（包名 `com.chengmai.exam`），解包得 `assets/index.html`、`data.json`（2714 题），确认是 **WebView 壳 + 本地服务 127.0.0.1:8080** 的 PWA。
   - 从 APK 内页面提取更新源，定位 GitHub 仓库 `kong940/chengmai-exam`，`git clone --depth 5` 完整取回（含 30KB `CHANGELOG.md` 开发手册、全部源码/数据/图标、git 历史）。在线版 `https://kong940.github.io/chengmai-exam/` 仍在。
@@ -247,5 +247,5 @@ git clone https://github.com/kong940/chengmai-exam.git
 - [x] 2026-11-22 系统重装后项目恢复：云端仓库取回、`chengmai-news-updater` skill 重建、APK 打包脚本+新密钥重建并产出新包。
 - [ ] **待用户操作**：新 APK 用新密钥签名，无法覆盖旧版——需在旧版「导出 JSON 备份」→ 卸载旧版 → 装新包 → 「导入恢复」。
 - [ ] **务必备份** `恢复项目/apk_build/chengmai_key.pem`（新签名私钥），再丢需再次换密钥+卸载。
-- [ ] **待推送**：本次 CHANGELOG 更新尚未 commit/push（重装后 git 身份为空、凭据不可用）；恢复推送环境后 `git add CHANGELOG.md && git commit -m "doc: 补 2026-11-22 项目恢复与重建记录" && git push`。
+- [x] 本次 CHANGELOG 更新已 commit `99c1979` 并推送到 GitHub main（2026-11-22）。
 - [ ] 考虑为 `chengmai-exam/` 加 GitHub Actions，实现「推题库自动重打包 APK」闭环（免去手动出包）。
