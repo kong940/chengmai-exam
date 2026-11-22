@@ -70,6 +70,14 @@ git clone https://github.com/kong940/chengmai-exam.git
 
 ## 二、更新记录
 
+### [2026-11-22] fix：APK「安装包无效」根因修复 —— v2 签名块 size 字段少算 8 字节
+- **现象**：新签名 APK 安装时报「安装包无效」（旧母版可装）。
+- **根因**：`build_v2_block` 里 `size = 8 + len(pair) + 8 = len(pair)+16`，而 AOSP 规范 `size = 块总长 - 8 = len(pair) + 24`（含尾部 size 8 字节 + magic 16 字节，不含开头 size 字段），**少 8 字节**；verify 又用 `block_start = p - size` 自洽校验 → 自检全过但真机装不上。Android 7+ 见 v2 块存在却校验失败，直接拒绝、不回退 v1。旧母版能装只因其 v2 本就不合规被忽略、走了 v1 兜底。
+- **修复**：①`build_v2_block` 改为 `size = len(pair) + 24` 并加断言 `len(block)==size+8`；②`verify` 改用 AOSP 公式 `block_start = cd_off - size - 8`、pair 终点 `cd_off - 24`，并校验首 size==尾 size。重新出包 `备考题库-联网更新版.apk`（2,044,304 字节），已同步桌面 `(新签名).apk`。
+- **验证**：独立按 AOSP 规范解析——`size==块长-8` ✅、pair `0x7109871a` 解析到尾 ✅、v2 摘要重算+公钥验签 ✅、v1 `openssl cms -verify` PASS + 16 条目摘要全对 ✅。
+- **原因/教训**：自写 verify 与构建共用错误假设会自洽误判；须用独立实现按官方文档交叉校验（本次靠「AOSP 公式 + 已知可装旧母版对照」定位）。
+- **关联文件**：`apk_build/build_apk.py`、`apk_build/更新说明.md`。
+
 ### [2026-11-22] ops：重建 APK 打包脚本 + 新签名密钥，产出可安装新包（原密钥随系统重装丢失）
 - **改动**：
   - 新建 `apk_build/build_apk.py`（`genkey / build / verify / all` 四步），v1(JAR) + v2(AOSP) 双签名；从桌面旧 APK 取 Android 壳（Manifest/dex/resources/res），从 `恢复项目/web/` 取网页源码与最新题库。
