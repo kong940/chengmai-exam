@@ -70,6 +70,15 @@ git clone https://github.com/kong940/chengmai-exam.git
 
 ## 二、更新记录
 
+### [2026-11-22] fix：APK 装机失败终极修复 —— 改用 Google 官方 apksig 签名（官方校验 verified=true）
+- **现象**：前三次手搓签名修复后仍报「缺乏开发者证书」，反复装机失败。
+- **决定性定位**：装 JDK 17（winget `EclipseAdoptium.Temurin.17.JDK`）+ 下载 Google 官方 `apksig 8.6.1`，写 Java 调用 `ApkVerifier.verify()` 拿到 Android 实际视角：新包 `verified=false`、**v1 signers=0、v2=2 个均 `Malformed`**；旧母版 `v1 signers=1、v2=0`（靠 v1 兜底才装上）。根因：手搓 v2 块 malformed，Android 见 v2 块存在就只认 v2、解析失败直接拒装，报「缺乏开发者证书」。
+- **解决**：彻底弃用手搓签名，用官方 `ApkSigner` API 对未签名母包签 v1+v2+v3（`tools/Sign.java`）；官方 `ApkVerifier` 校验结果 **verified=true，v1/v2/v3 signers 各 1、零错误**。
+- **产物**：`apk_build/备考题库-联网更新版.apk`（2,049,321 B），同步桌面 `(新签名).apk`（md5 `89feefd7...` 一致）；内容不变（updated 2026-11-03、2714 题 + 118 资讯）。
+- **流程固化**：新增 `apk_build/sign_official.sh`（提取母包→DER 转换→编译→官方签名→官方校验，verified 才替换）；`更新说明.md` 重写，签名踩坑改为历史记录。工具 `tools/apksig.jar` + JDK 17 已就位。
+- **教训**：底层二进制签名绝不能手搓并用自写校验器验证（自洽陷阱，连踩 3 坑）；必须用官方实现交叉校验 + 已知可装旧母版对照，最终直接用官方 ApkSigner 从根上消除格式问题。
+- **关联文件**：`apk_build/sign_official.sh`、`apk_build/tools/{Sign,Verify}.java`、`apk_build/更新说明.md`。
+
 ### [2026-11-22] fix：APK 装机失败根因修复 —— v1/v2 签名格式三处坑（「安装包无效」+「需要开发者证书」）
 - **现象与根因（逐个定位、逐个修复）**：
   1. **「安装包无效」= v2 签名块 size 少 8 字节**：`build_v2_block` 里 `size = len(pair)+16`，AOSP 规范应为 `size = 块长-8 = len(pair)+24`（含尾 size 8 + magic 16，不含开头 size）；verify 用 `block_start=p-size` 自洽 → 自检过但 Android 7+ 按规范 `cd_off-size-8` 定位偏移 8 字节、v2 校验失败直接拒装。修复：`size=len(pair)+24`+断言，verify 改 AOSP 公式并校验首尾 size 一致。
